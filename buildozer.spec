@@ -1,33 +1,30 @@
 [app]
-title = EDITH VISION
-package.name = edithvision
-package.domain = com.edith.vision
+title = AURA
+package.name = aura
+package.domain = org.ecatepec.aura
 
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,json
-
 version = 1.0
+version.regex = __version__ = ['"](.*)['"]
+version.filename = %(source.dir)s/main.py
 
-requirements = python3,kivy,opencv,android,numpy,pillow
+requirements = python3,kivy==2.3.0,pillow,requests,plyer,android
+
 orientation = portrait
 fullscreen = 0
+
+# Permisos para los perritos
+android.permissions = INTERNET,ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,CAMERA,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
+android.api = 33
+android.minapi = 21
+android.ndk = 28c
+android.accept_sdk_license_agreement = True
+android.ant = auto
+
+# Icono - si no tienes, quita esta linea
+#icon.filename = %(source.dir)s/icon.png
 
 [buildozer]
 log_level = 2
 warn_on_root = 1
-
-[app:android]
-android.api = 33
-android.minapi = 21
-android.sdk = 33
-android.ndk = 25b
-android.build_tools_version = 33.0.2
-android.accept_sdk_license_agreements = True
-android.permissions = CAMERA,RECORD_AUDIO,INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
-android.features = android.hardware.camera,android.hardware.camera.autofocus
-p4a.branch = master
-p4a.bootstrap = sdl2
-
-[buildozer:android]
-android.sdk_path = /home/runner/android-sdk
-android.ndk_path = /home/runner/android-sdk/ndk/25.1.8937393
