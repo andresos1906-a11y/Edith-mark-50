@@ -44,7 +44,7 @@ android.ndk = 25b
 # (str) Android build tools version
 android.build_tools_version = 33.0.2
 
-android.accept_sdk_license_ = True
+android.accept_sdk_license = True
 
 # (str) Bootstrap to use for p4a
 p4a.bootstrap = sdl2
