@@ -1,5 +1,5 @@
 # AURA IA - MARK 10 - MARKMETA LABS (Android Ready)
-import os, json, datetime, threading
+import os, json, datetime, threading, requests
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
@@ -37,10 +37,9 @@ def save_user(name, memory):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(users, f, indent=2, ensure_ascii=False)
 
-# --- GEMINI RESPALDO ---
+# --- GEMINI VÍA REST API (EVITA ERRORES EN ANDROID) ---
 def ask_gemini(prompt, user_memory):
     try:
-        import google.generativeai as genai
         key = ""
         gemini_path = get_file_path("gemini_key.txt")
         
@@ -53,16 +52,28 @@ def ask_gemini(prompt, user_memory):
         if not key:
             return "Jefe, pon tu API Key de Gemini en Ajustes para responder de todo."
 
-        genai.configure(api_key=key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
         
         historial_reciente = user_memory.get("historial", [])[-10:]
         contexto = f"Eres AURA IA de MarkMeta Labs. Usuario: {user_memory.get('nombre')}. Historial reciente: {json.dumps(historial_reciente, ensure_ascii=False)}. Responde natural, mexicana, no robótica. Pregunta: {prompt}"
         
-        resp = model.generate_content(contexto)
-        return resp.text
+        payload = {
+            "contents": [{
+                "parts": [{"text": contexto}]
+            }]
+        }
+        headers = {'Content-Type': 'application/json'}
+        
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data["candidates"][0]["content"]["parts"][0]["text"]
+        else:
+            return f"Error en la API de Gemini: {response.status_code}"
+            
     except Exception as e:
-        return f"Soy AURA local, Jefe {user_memory.get('nombre', '')}. Sin internet por ahora, pero recuerdo que te interesa {user_memory.get('interes', 'aprender')}. Preguntaste: {prompt}"
+        return f"Soy AURA local, Jefe {user_memory.get('nombre', '')}. Sin internet por ahora, pero recuerdo que te interesa {user_memory.get('interes', 'aprender')}. Error: {str(e)}"
 
 # --- VOZ NATIVA PARA ANDROID ---
 def speak(text):
