@@ -44,7 +44,6 @@ android.ndk = 25b
 # (str) Android build tools version
 android.build_tools_version = 33.0.2
 
-# (bool) If True, then skip trying to update the android sdk
 android.accept_sdk_license_agreements = True
 
 # (str) Bootstrap to use for p4a
