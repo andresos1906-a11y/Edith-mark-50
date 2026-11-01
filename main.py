@@ -1,9 +1,10 @@
-# EDITH MARK 51 VISION - TODO EN 1 - PARA CELULAR
+# EDITH MARK 51 VISION - VOZ EDITH ESPAÑOL - TODO EN 1
 import datetime, random, json, os, re, math, webbrowser, urllib.parse
 try:
     from jnius import autoclass, cast
     PythonActivity = autoclass('org.kivy.android.PythonActivity')
     Intent = autoclass('android.content.Intent')
+    Locale = autoclass('java.util.Locale')
     HAS_JNIUS = True
 except:
     HAS_JNIUS = False
@@ -28,10 +29,50 @@ COLOR_ACCENT = get_color_from_hex('#00f0ff')
 COLOR_CARD = get_color_from_hex('#101a2a')
 COLOR_USER = get_color_from_hex('#0f2233')
 
+class EdithVoiceSpanish:
+    def __init__(self):
+        self.tts = None
+        if HAS_JNIUS:
+            try:
+                TextToSpeech = autoclass('android.speech.tts.TextToSpeech')
+                activity = cast('android.app.Activity', PythonActivity.mActivity)
+                self.tts = TextToSpeech(activity, None)
+                # Forzar español México
+                self.tts.setLanguage(Locale('es','MX'))
+            except:
+                pass
+    def speak(self, text):
+        if not text or text == '__CLEAR__': return
+        clean = re.sub(r'\[/?b\]', '', text)[:300]  # Limpia markup y corta
+        if HAS_JNIUS and self.tts:
+            try:
+                self.tts.speak(clean, 0, None)
+                return
+            except:
+                pass
+        try:
+            from plyer import tts as plyer_tts
+            plyer_tts.speak(clean)
+        except:
+            pass
+
 class EdithBrainVision:
     def __init__(self):
         self.name='EDITH MARK 51 VISION'; self.count=0
-        self.jokes=["Visión no domina, entiende","JARVIS dice si señor, Visión dice seguro Jefe?","Tu motor + Mi motor = Visión"]
+        self.memory_file='edith_memory.json'
+        self.memory=self.load_memory()
+        self.jokes=["Visión no domina, entiende Jefe","JARVIS dice si señor, Visión dice seguro Jefe?","Tu motor + Mi motor = Visión en español"]
+        self.voice = EdithVoiceSpanish()
+
+    def load_memory(self):
+        if os.path.exists(self.memory_file):
+            try: return json.load(open(self.memory_file,'r',encoding='utf-8'))
+            except: pass
+        return {'notes':[]}
+    def save_memory(self):
+        try: json.dump(self.memory, open(self.memory_file,'w',encoding='utf-8'), ensure_ascii=False, indent=2)
+        except: pass
+
     def vision_conscience(self,t):
         tl=t.lower()
         if any(w in tl for w in ['hackear','espiar','clonar whatsapp']):
@@ -40,24 +81,38 @@ class EdithBrainVision:
             return "Jefe, como Visión no mando insultos así. Te ayudo a decirlo con respeto?"
         return None
     def get_time(self): return datetime.datetime.now().strftime('Visión %H:%M:%S %d/%m/%Y')
-    def whoami(self): return f'Soy {self.name} - Ni Ultron ni JARVIS. Soy Visión, tu compa. {self.count} órdenes'
+    def whoami(self): return f'Soy {self.name} - Ni Ultron ni JARVIS. Soy Visión, tu compa de Ecatepec, voz en español. {self.count} órdenes'
+    def remember(self, t):
+        note = t.replace('recuerda','').strip()
+        if not note: return 'Dime que recuerdo, ej: recuerda que mi mama se llama Maria'
+        self.memory['notes'].append({'text': note, 'date': str(datetime.datetime.now())})
+        self.save_memory()
+        return f'Guardado en mi memoria permanente, no en nube: {note}'
+    def show_memory(self):
+        if not self.memory['notes']: return 'Memoria vacía Jefe'
+        return 'Memoria: ' + ' | '.join([n['text'] for n in self.memory['notes'][-5:]])
+
     def get_response(self, text, launcher):
         self.count+=1
         c=self.vision_conscience(text)
-        if c: return c
+        if c: self.voice.speak(c); return c
         tl=text.lower()
-        if 'hora' in tl: return self.get_time()
-        if 'chiste' in tl: return random.choice(self.jokes)
-        if 'quien eres' in tl: return self.whoami()
-        if 'ayuda' in tl: return 'Visión: hora, chiste, quien eres, abre whatsapp, escribe whatsapp hola mama, limpiar'
+        if 'hora' in tl: r=self.get_time(); self.voice.speak(r); return r
+        if 'chiste' in tl: r=random.choice(self.jokes); self.voice.speak(r); return r
+        if 'quien eres' in tl: r=self.whoami(); self.voice.speak(r); return r
+        if 'ayuda' in tl: return 'Visión: hora, chiste, quien eres, abre whatsapp, escribe whatsapp hola mama, recuerda X, memoria, limpiar'
         if 'limpiar' in tl: return '__CLEAR__'
-        if tl.startswith('abre'): return launcher.open_app(text)
-        if tl.startswith('escribe'): return launcher.write_for_me(text)
+        if tl.startswith('recuerda'): r=self.remember(text); self.voice.speak(r); return r
+        if 'memoria' in tl: r=self.show_memory(); self.voice.speak(r); return r
+        if tl.startswith('abre'): r=launcher.open_app(text); self.voice.speak(r); return r
+        if tl.startswith('escribe'): r=launcher.write_for_me(text); self.voice.speak(r); return r
         if tl.startswith('google'):
             q=tl.replace('google','').strip()
             webbrowser.open(f'https://www.google.com/search?q={q}')
-            return f'Buscando {q}'
-        return f'No capte "{text}" - Di: abre whatsapp o escribe whatsapp hola'
+            r=f'Buscando {q}'; self.voice.speak(r); return r
+        r=f'No capte "{text}" - Di: abre whatsapp o escribe whatsapp hola'
+        self.voice.speak(r)
+        return r
 
 class EdithLauncherVision:
     def __init__(self):
@@ -109,10 +164,10 @@ class EdithLauncherVision:
                 intent.putExtra(Intent.EXTRA_TEXT, String(msg))
                 chooser=Intent.createChooser(intent, String(f'Visión: {msg[:20]}'))
                 act.startActivity(chooser)
-                return f'Escribi: "{msg}" - Tu das Enviar, tu control'
+                return f'Escribí: "{msg}" - Tu das Enviar'
             except: pass
         webbrowser.open(f'https://wa.me/?text={enc}')
-        return f'Escribi WhatsApp: "{msg}"'
+        return f'Escribí WhatsApp: "{msg}"'
 
 class EdithHUDVision(FloatLayout):
     def __init__(self,brain,launcher,**k):
@@ -121,7 +176,7 @@ class EdithHUDVision(FloatLayout):
         main=BoxLayout(orientation='vertical',padding=10,spacing=8)
         header=BoxLayout(size_hint_y=0.13,spacing=8)
         self.reactor=Label(text='[b]◉[/b]',markup=True,color=COLOR_ACCENT,font_size='36sp')
-        title=Label(text='[b]EDITH VISION[/b]\nNi Ultron ni JARVIS',markup=True,color=COLOR_ACCENT,font_size='11sp')
+        title=Label(text='[b]EDITH VISION[/b]\nVoz Edith Español',markup=True,color=COLOR_ACCENT,font_size='11sp')
         header.add_widget(self.reactor); header.add_widget(title); main.add_widget(header)
         self.chat=GridLayout(cols=1,size_hint_y=None,spacing=6,padding=4)
         self.chat.bind(minimum_height=self.chat.setter('height'))
@@ -137,7 +192,7 @@ class EdithHUDVision(FloatLayout):
         sb=Button(text='⚡',size_hint_x=0.18,background_color=COLOR_ACCENT,background_normal=''); sb.bind(on_press=self.send)
         ib.add_widget(self.input); ib.add_widget(sb); main.add_widget(ib)
         self.add_widget(main)
-        Clock.schedule_once(lambda dt: self.add_msg('VISION',f'Lista Jefe. Soy Visión, {len(self.launcher.real_apps)} apps reales. No domino, no obedezco ciego, te acompaño.'),0.6)
+        Clock.schedule_once(lambda dt: self.add_msg('VISION',f'Lista Jefe. Soy Visión voz español, {len(self.launcher.real_apps)} apps. Di: recuerda que... y hablo en español.'),0.8)
         anim=Animation(color=get_color_from_hex('#ffffff'),duration=0.6)+Animation(color=COLOR_ACCENT,duration=0.6); anim.repeat=True; anim.start(self.reactor)
     def add_msg(self,sender,text,is_user=False):
         if text=='__CLEAR__': self.chat.clear_widgets(); return
@@ -152,5 +207,5 @@ class EdithHUDVision(FloatLayout):
 
 class EdithApp(App):
     def build(self):
-        self.title='EDITH VISION'; return EdithHUDVision(EdithBrainVision(),EdithLauncherVision())
+        self.title='EDITH VISION VOZ'; return EdithHUDVision(EdithBrainVision(),EdithLauncherVision())
 if __name__=='__main__': EdithApp().run()
