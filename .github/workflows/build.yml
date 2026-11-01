@@ -1,4 +1,4 @@
-name: Build EDITH VISION FINAL
+name: AURA FINAL
 on: [push]
 jobs:
   build:
@@ -7,41 +7,42 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: 17
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install System Deps
+      - name: Install Deps
         run: |
           sudo apt update
-          sudo apt install -y build-essential git python3-dev ffmpeg libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev libtool libffi-dev libssl-dev libasound2-dev autoconf automake pkg-config unzip wget
-          pip install buildozer cython==0.29.33
+          sudo apt install -y python3-pip python3-dev build-essential libssl-dev libffi-dev autoconf automake libtool pkg-config zlib1g-dev unzip wget
+          pip install --upgrade pip
+          pip install https://github.com/kivy/buildozer/archive/master.zip
+          pip install cython==0.29.33
 
-      - name: Accept Licenses
+      - name: Pre-install SDK
         run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          cd $HOME/android-sdk/cmdline-tools
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
+          cd $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
           unzip -q tools.zip
           mv cmdline-tools latest
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
+          ln -sf $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
           mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
-          export ANDROID_HOME=$HOME/android-sdk
-          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools" "ndk;25.1.8937393"
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
-          cp $HOME/android-sdk/licenses/android-sdk-license $HOME/.buildozer/android/platform/android-sdk/licenses/ || echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+          export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
+          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
+          yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools" "ndk;28c"
 
-      - name: Build APK
+      - name: Build AURA APK
         run: |
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
-          export ANDROID_HOME=$HOME/android-sdk
-          export ANDROIDNDK=$HOME/android-sdk/ndk/25.1.8937393
+          export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
+          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
           buildozer android debug
 
       - uses: actions/upload-artifact@v4
         with:
-          name: EDITH-VISION-APK
+          name: AURA-APK
           path: bin/*.apk
