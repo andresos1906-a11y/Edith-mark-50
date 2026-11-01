@@ -23,6 +23,11 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
+    - name: Clean conflicting Android environment variables
+      run: |
+        echo "ANDROID_NDK_HOME=" >> $GITHUB_ENV
+        echo "ANDROID_HOME=" >> $GITHUB_ENV
+
     - name: Install dependencies
       run: |
         sudo apt-get update
