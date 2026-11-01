@@ -33,7 +33,7 @@ jobs:
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
           $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "build-tools;37.0.0" "platforms;android-33" "platform-tools" "ndk;25.1.8937393"
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          # HACK 1: Licencia para Buildozer
+          # HACK LICENCIA
           mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
           echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
           echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
@@ -46,10 +46,15 @@ jobs:
           export ANDROIDNDK=$HOME/android-sdk/ndk/25.1.8937393
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export ANDROID_HOME=$HOME/android-sdk
-          # HACK 2: Fix para tu error de las 2:28 - sdkmanager not found / Aidl not found
+          # --- DOBLE HACK PARA TU ERROR DE LAS 2:32 ---
           mkdir -p $HOME/.buildozer/android/platform
           rm -rf $HOME/.buildozer/android/platform/android-sdk
           ln -s $HOME/android-sdk $HOME/.buildozer/android/platform/android-sdk
+          # El p4a busca sdkmanager en tools/bin (viejo), lo creamos
+          mkdir -p $HOME/android-sdk/tools/bin
+          ln -sf $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager $HOME/android-sdk/tools/bin/sdkmanager
+          ln -sf $HOME/android-sdk/cmdline-tools/latest/bin/avdmanager $HOME/android-sdk/tools/bin/avdmanager
+          # --------------------------------------------
           buildozer android debug
 
       - uses: actions/upload-artifact@v4
