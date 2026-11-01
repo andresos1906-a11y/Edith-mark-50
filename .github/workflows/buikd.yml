@@ -1,4 +1,4 @@
-name: Build VISION APK
+name: Build EDITH VISION FINAL
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -6,22 +6,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: '3.10' }
-      - run: |
+        with:
+          python-version: '3.10'
+      - name: Install System Deps
+        run: |
           sudo apt update
-          sudo apt install -y openjdk-17-jdk unzip wget
-          pip install buildozer cython
-      - run: |
+          sudo apt install -y openjdk-17-jdk unzip wget python3-pip libffi-dev
+          pip install buildozer cython==0.29.33
+      - name: Install Android SDK
+        run: |
           mkdir -p $HOME/android-sdk/cmdline-tools
           cd $HOME/android-sdk/cmdline-tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
           unzip -q tools.zip
           mv cmdline-tools latest
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
-          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools"
-      - run: |
+          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools" "ndk;25b"
+      - name: Build APK
+        run: |
           export ANDROIDSDK=$HOME/android-sdk
+          export ANDROIDNDK=$HOME/android-sdk/ndk/25b
+          export ANDROIDNDKVER=r25b
           export PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools
           buildozer android debug
-      - uses: actions/upload-artifact@v4
-        with: { name: EDITH-VISION-APK, path: bin/*.apk }
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: EDITH-VISION-FINAL-APK
+          path: bin/*.apk
