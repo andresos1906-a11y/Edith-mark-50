@@ -11,19 +11,16 @@ package.domain = com.markmetalabs.auraia
 
 # (list) Source files to include
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,json,txt
+source.include_exts = py,png,jpg,kv,json,txt
 
 # (str) Application version
-version = 0.1
+version = 1.0
 
 # (list) Application requirements
 requirements = python3,kivy,plyer,requests
 
 # (str) Supported orientations
 orientation = portrait
-
-# (int) Fullscreen (1 = fullscreen, 0 = not fullscreen)
-fullscreen = 0
 
 # (list) Permissions
 android.permissions = INTERNET,RECORD_AUDIO
@@ -43,14 +40,10 @@ android.ndk = 25b
 # (str) Android build tools version
 android.build_tools_version = 31.0.0
 
+# (list) Target architectures
+android.archs = armeabi-v7a
+
 android.accept_sdk_license = True
-
-# (str) Bootstrap to use for p4a
-p4a.bootstrap = sdl2
-
-# (str) Branch to use for p4a
-p4a.branch = master
-
 
 [buildozer]
 
