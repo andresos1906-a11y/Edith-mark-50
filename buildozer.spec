@@ -7,8 +7,6 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,json
 
 version = 0.1
-version.regex = __version__ = ['"]([^'"]*)['"]
-version.filename = %(source.dir)s/main.py
 
 requirements = python3,kivy==2.3.0
 
