@@ -17,3 +17,5 @@ android.ndk = 25b
 android.accept_sdk_license_agreements = True
 p4a.branch = v2024.01.21
 p4a.bootstrap = sdl2
+icon.filename = %(source.dir)s/icon.png
+android.app-icon = icon.png
