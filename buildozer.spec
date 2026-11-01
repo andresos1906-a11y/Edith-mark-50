@@ -18,7 +18,7 @@ version = 0.1
 
 # (list) Application requirements
 # (edge-tts y google-generativeai removidos para evitar errores de compilación en p4a)
-requirements = python3,kivy,plyer,requests,certifi,urllib3,idna,charset_normalizer,openssl
+requirements = python3,kivy,plyer,requests
 
 # (str) Supported orientations
 orientation = portrait
