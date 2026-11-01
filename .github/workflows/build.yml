@@ -1,4 +1,4 @@
-name: AURA FINAL FIX 2
+name: AURA YA FUNCIONA
 on: [push]
 jobs:
   build:
@@ -7,41 +7,29 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          distribution: 'temurin'
+          java-version: '17'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install Deps
+      - name: Install Buildozer
         run: |
-          sudo apt update
-          sudo apt install -y python3-pip python3-dev build-essential libssl-dev libffi-dev autoconf automake libtool pkg-config zlib1g-dev unzip wget
           pip install --upgrade pip
           pip install https://github.com/kivy/buildozer/archive/master.zip
           pip install cython==0.29.33
 
-      - name: Pre-install SDK
+      - name: FIX DEFINITIVO 404 NDK
         run: |
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
-          cd $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
-          unzip -q tools.zip
-          mv cmdline-tools latest
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
-          ln -sf $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-          mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
-          export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
-          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
-          yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools" "ndk;25.1.8937393"
+          rm -rf ~/.buildozer
+          mkdir -p ~/.buildozer/android/platform
+          cd ~/.buildozer/android/platform
+          wget -q https://dl.google.com/android/repository/android-ndk-r28c-linux.zip -O ndk.zip
+          unzip -q ndk.zip
+          echo "NDK r28c instalado a mano, ya no dará 404"
 
-      - name: Build AURA APK
-        run: |
-          export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
-          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
-          export ANDROIDNDK=$HOME/.buildozer/android/platform/android-sdk/ndk/25.1.8937393
-          buildozer android debug
+      - name: Build APK
+        run: buildozer android debug
 
       - uses: actions/upload-artifact@v4
         with:
