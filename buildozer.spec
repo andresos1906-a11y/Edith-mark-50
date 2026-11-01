@@ -17,7 +17,6 @@ source.include_exts = py,png,jpg,kv,atlas,json,txt
 version = 0.1
 
 # (list) Application requirements
-# (edge-tts y google-generativeai removidos para evitar errores de compilación en p4a)
 requirements = python3,kivy,plyer,requests
 
 # (str) Supported orientations
@@ -30,19 +29,19 @@ fullscreen = 0
 android.permissions = INTERNET,RECORD_AUDIO
 
 # (int) Target Android API
-android.api = 33
+android.api = 31
 
 # (int) Minimum API your APK will support
 android.minapi = 21
 
 # (int) Android SDK version to use
-android.sdk = 33
+android.sdk = 31
 
 # (str) Android NDK version to use
 android.ndk = 25b
 
 # (str) Android build tools version
-android.build_tools_version = 33.0.2
+android.build_tools_version = 31.0.0
 
 android.accept_sdk_license = True
 
