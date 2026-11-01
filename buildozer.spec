@@ -7,8 +7,6 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,json
 
 version = 1.0
-version.regex = __version__ = ['"]([^'"]+)['"]
-version.filename = %(source.dir)s/main.py
 
 requirements = python3,kivy,opencv,android,numpy,pillow
 orientation = portrait
