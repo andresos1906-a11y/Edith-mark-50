@@ -1,123 +1,234 @@
-__version__ = "0.1"
-
-import os, json, datetime, random, webbrowser
+# AURA IA - MARK 10 - MARKMETA LABS (Android Ready)
+import os, json, datetime, threading
 from kivy.app import App
+from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
-from kivy.uix.button import Button
-from kivy.uix.textinput import TextInput
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.gridlayout import GridLayout
+from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
 from kivy.clock import Clock
-from kivy.utils import get_color_from_hex
-from kivy.animation import Animation
 
-# Colores AURA
-COLOR_ACCENT = get_color_from_hex("#00D1FF")
-COLOR_CARD = get_color_from_hex("#1E1E1E")
-COLOR_USER = get_color_from_hex("#2A2A2A")
+# --- RUTAS SEGURAS PARA ANDROID Y PC ---
+def get_file_path(filename):
+    try:
+        app = App.get_running_app()
+        if app and app.user_data_dir:
+            return os.path.join(app.user_data_dir, filename)
+    except:
+        pass
+    return filename
 
-# Imports de Android con protección para que no rompa el build
-try:
-    from jnius import autoclass, cast
-    from android import mActivity
-    HAS_JNIUS = True
-except:
-    HAS_JNIUS = False
+# --- MEMORIA POR USUARIO ---
+def load_users():
+    path = get_file_path("users.json")
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {}
 
-class AuraVoice:
-    def speak(self, text):
-        print(f"AURA: {text}")
-        return text
+def save_user(name, memory):
+    path = get_file_path("users.json")
+    users = load_users()
+    users[name] = memory
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(users, f, indent=2, ensure_ascii=False)
 
-class AuraBrain:
-    def __init__(self):
-        self.name = "AURA"
-        self.memory_file = "aura_memory.json"
-        self.memory = self.load_memory()
-        self.voice = AuraVoice()
-        self.jokes = ["¿Por qué la IA no va a la playa? ¡Porque tiene miedo al mar de datos!", "Soy de Ecatepec y con orgullo."]
-        self.count = 0
+# --- GEMINI RESPALDO ---
+def ask_gemini(prompt, user_memory):
+    try:
+        import google.generativeai as genai
+        key = ""
+        gemini_path = get_file_path("gemini_key.txt")
+        
+        if os.path.exists(gemini_path):
+            with open(gemini_path, "r", encoding="utf-8") as f:
+                key = f.read().strip()
+        else:
+            key = os.getenv("GEMINI_API_KEY", "")
 
-    def load_memory(self):
-        if os.path.exists(self.memory_file):
-            try: return json.load(open(self.memory_file,'r',encoding='utf-8'))
-            except: pass
-        return {'notes':[]}
+        if not key:
+            return "Jefe, pon tu API Key de Gemini en Ajustes para responder de todo."
 
-    def save_memory(self):
-        try: json.dump(self.memory, open(self.memory_file,'w',encoding='utf-8'))
-        except: pass
+        genai.configure(api_key=key)
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        
+        historial_reciente = user_memory.get("historial", [])[-10:]
+        contexto = f"Eres AURA IA de MarkMeta Labs. Usuario: {user_memory.get('nombre')}. Historial reciente: {json.dumps(historial_reciente, ensure_ascii=False)}. Responde natural, mexicana, no robótica. Pregunta: {prompt}"
+        
+        resp = model.generate_content(contexto)
+        return resp.text
+    except Exception as e:
+        return f"Soy AURA local, Jefe {user_memory.get('nombre', '')}. Sin internet por ahora, pero recuerdo que te interesa {user_memory.get('interes', 'aprender')}. Preguntaste: {prompt}"
 
-    def get_time(self):
-        return datetime.datetime.now().strftime("Son las %H:%M Jefe")
+# --- VOZ NATIVA PARA ANDROID ---
+def speak(text):
+    text = text[:350]
+    print(f"[AURA]: {text}")
+    def run_voice():
+        try:
+            from plyer import tts
+            tts.speak(text)
+        except Exception as e:
+            print(f"Error en TTS: {e}")
+    threading.Thread(target=run_voice, daemon=True).start()
 
-    def whoami(self):
-        return f"Soy {self.name} voz AURA español México, hecha en Ecatepec por MARK META LABS"
+# --- INTERFAZ GRÁFICA (KIVY) ---
 
-    def remember(self, t):
-        note = t.replace("recuerda","").strip()
-        if not note: return "Dime que recuerdo"
-        self.memory['notes'].append({'text':note,'date':str(datetime.datetime.now())})
-        self.save_memory()
-        return f"Guardado permanente: {note}"
+class LoginScreen(Screen):
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        layout = BoxLayout(orientation='vertical', padding=20, spacing=10)
+        layout.add_widget(Label(text="[b]AURA IA - MARKMETA LABS[/b]", markup=True, font_size='22sp'))
+        layout.add_widget(Label(text="Ingresa tu nombre de usuario:"))
+        
+        self.user_input = TextInput(multiline=False, size_hint_y=None, height=50)
+        layout.add_widget(self.user_input)
+        
+        btn_login = Button(text="Iniciar Sesión", size_hint_y=None, height=55)
+        btn_login.bind(on_release=self.login)
+        layout.add_widget(btn_login)
+        self.add_widget(layout)
 
-    def get_response(self, text, launcher):
-        self.count+=1
-        tl=text.lower()
-        if 'hora' in tl: return self.get_time()
-        if 'chiste' in tl: return random.choice(self.jokes)
-        if 'quien eres' in tl: return self.whoami()
-        if 'memoria' in tl: return ', '.join([n['text'] for n in self.memory['notes']]) or "Memoria vacía"
-        if tl.startswith('recuerda'): return self.remember(text)
-        if 'limpiar' in tl: return "__CLEAR__"
-        if tl.startswith('abre'): return launcher.open_app(text)
-        if tl.startswith('escribe'): return launcher.write_for_me(text)
-        if tl.startswith('google'): return launcher.google_for_me(text)
-        return f"Di: abre whatsapp, escribe whatsapp hola mama, recuerda algo, que hora es"
+    def login(self, instance):
+        username = self.user_input.text.strip()
+        if username:
+            app = App.get_running_app()
+            app.current_user = username
+            users = load_users()
+            if username not in users:
+                users[username] = {"nombre": username, "interes": "aprender", "historial": []}
+                save_user(username, users[username])
+            app.user_memory = users[username]
+            
+            chat_screen = self.manager.get_screen('chat')
+            chat_screen.update_header(username)
+            self.manager.current = 'chat'
+            speak(f"Hola Jefe {username}, lista para ayudarte.")
 
-class AuraLauncher:
-    def __init__(self):
-        self.real_apps={'whatsapp':'com.whatsapp','facebook':'com.facebook.katana','youtube':'com.google.android.youtube'}
+class ChatScreen(Screen):
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        
+        self.header = Label(text="AURA IA", size_hint_y=None, height=35, font_size='18sp')
+        layout.add_widget(self.header)
+        
+        self.scroll = ScrollView()
+        self.chat_log = Label(text="", size_hint_y=None, markup=True, halign='left', valign='top')
+        self.chat_log.bind(texture_size=self._update_log_height)
+        self.scroll.add_widget(self.chat_log)
+        layout.add_widget(self.scroll)
+        
+        input_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=5)
+        self.text_input = TextInput(multiline=False)
+        btn_send = Button(text="Enviar", size_hint_x=0.25)
+        btn_send.bind(on_release=self.send_message)
+        
+        btn_settings = Button(text="Ajustes", size_hint_x=0.2)
+        btn_settings.bind(on_release=self.open_settings)
+        
+        input_layout.add_widget(self.text_input)
+        input_layout.add_widget(btn_send)
+        input_layout.add_widget(btn_settings)
+        layout.add_widget(input_layout)
+        
+        self.add_widget(layout)
 
-    def open_app(self,q):
-        q=q.lower().replace('abre','').strip()
-        pkg=self.real_apps.get(q) or self.real_apps.get(q.split()[0]) if q else None
-        if pkg and HAS_JNIUS:
-            try:
-                act=cast('android.app.Activity', mActivity)
-                pm=act.getPackageManager()
-                intent=pm.getLaunchIntentForPackage(pkg)
-                if intent: act.startActivity(intent); return f"Abriendo {q}"
-            except Exception as e: return f"Error {e}"
-        return f"Abriendo {q} - {pkg}"
+    def _update_log_height(self, instance, value):
+        self.chat_log.height = value[1]
+        self.chat_log.text_size = (self.chat_log.width, None)
+        self.scroll.scroll_y = 0
 
-    def write_for_me(self,text):
-        t=text.lower().replace('escribe','').strip()
-        msg=t.split(' ',1)[-1] if ' ' in t else t
-        if HAS_JNIUS:
-            try:
-                String=autoclass('java.lang.String')
-                act=cast('android.app.Activity', mActivity)
-                intent=autoclass('android.content.Intent')(autoclass('android.content.Intent').ACTION_SEND)
-                if 'whatsapp' in t: intent.setPackage('com.whatsapp')
-                intent.putExtra(autoclass('android.content.Intent').EXTRA_TEXT, String(msg))
-                chooser=autoclass('android.content.Intent').createChooser(intent, String(f'AURA: {msg}'))
-                act.startActivity(chooser)
-                return f"Escribí: {msg} - Tu das Enviar"
-            except: pass
-        webbrowser.open(f"https://wa.me/?text={msg}")
-        return f"WhatsApp: {msg}"
+    def update_header(self, username):
+        self.header.text = f"Usuario: [b]{username}[/b] | MarkMeta Labs"
 
-    def google_for_me(self,text):
-        q=text.lower().replace('google','').strip()
-        webbrowser.open(f"https://www.google.com/search?q={q}")
-        return f"Buscando {q}"
+    def open_settings(self, instance):
+        self.manager.current = 'settings'
 
-class AuraUI(BoxLayout):
-    def __init__(self,brain,launcher,**k):
-        super().__init__(**k)
-        self.brain=brain; self.launcher=launcher
-        self.orientation='vertical'; self.padding=10; self.spacing=8
-        header=BoxLayout(size_hint_y=0.13,spacing=8)
-        self.reactor=Label(text='[b]/b]',markup=True,color
+    def send_message(self, instance):
+        prompt = self.text_input.text.strip()
+        if not prompt:
+            return
+        
+        self.text_input.text = ""
+        self.append_text(f"[b]Tú:[/b] {prompt}")
+        
+        app = App.get_running_app()
+        
+        def process_response():
+            response = ask_gemini(prompt, app.user_memory)
+            Clock.schedule_once(lambda dt: self.finish_response(response, prompt))
+            
+        threading.Thread(target=process_response, daemon=True).start()
+
+    def finish_response(self, response, prompt):
+        self.append_text(f"[b]AURA:[/b] {response}")
+        speak(response)
+        
+        app = App.get_running_app()
+        if "historial" not in app.user_memory:
+            app.user_memory["historial"] = []
+            
+        app.user_memory["historial"].append({
+            "q": prompt, 
+            "a": response, 
+            "time": str(datetime.datetime.now())
+        })
+        
+        if len(app.user_memory["historial"]) > 50:
+            app.user_memory["historial"] = app.user_memory["historial"][-50:]
+            
+        save_user(app.current_user, app.user_memory)
+
+    def append_text(self, text):
+        self.chat_log.text += f"\n{text}\n"
+        self.scroll.scroll_y = 0
+
+class SettingsScreen(Screen):
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        layout = BoxLayout(orientation='vertical', padding=20, spacing=10)
+        
+        layout.add_widget(Label(text="[b]Configuración de Gemini[/b]", markup=True, font_size='18sp'))
+        layout.add_widget(Label(text="Clave API de Gemini:"))
+        
+        self.key_input = TextInput(multiline=False, size_hint_y=None, height=45)
+        
+        gemini_path = get_file_path("gemini_key.txt")
+        if os.path.exists(gemini_path):
+            with open(gemini_path, "r", encoding="utf-8") as f:
+                self.key_input.text = f.read().strip()
+                
+        layout.add_widget(self.key_input)
+        
+        btn_save = Button(text="Guardar y Volver", size_hint_y=None, height=50)
+        btn_save.bind(on_release=self.save_key)
+        layout.add_widget(btn_save)
+        
+        self.add_widget(layout)
+
+    def save_key(self, instance):
+        key = self.key_input.text.strip()
+        gemini_path = get_file_path("gemini_key.txt")
+        with open(gemini_path, "w", encoding="utf-8") as f:
+            f.write(key)
+        self.manager.current = 'chat'
+
+class AuraApp(App):
+    def build(self):
+        self.title = "AURA IA - MarkMeta Labs"
+        self.current_user = None
+        self.user_memory = {}
+        
+        sm = ScreenManager()
+        sm.add_widget(LoginScreen(name='login'))
+        sm.add_widget(ChatScreen(name='chat'))
+        sm.add_widget(SettingsScreen(name='settings'))
+        return sm
+
+if __name__ == '__main__':
+    AuraApp().run()
