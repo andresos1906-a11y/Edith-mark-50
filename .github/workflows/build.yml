@@ -1,4 +1,4 @@
-name: Build APK with Buildozer
+name: Build APK
 
 on:
   push:
@@ -12,36 +12,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-
-    - name: Install System Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          build-essential \
-          git \
-          ffmpeg \
-          libsdl2-dev \
-          libsdl2-image-dev \
-          libsdl2-mixer-dev \
-          libsdl2-ttf-dev \
-          libfontconfig1-dev \
-          libxslt1-dev \
-          locales \
-          unzip \
-          zip \
-          zlib1g-dev \
-          autoconf \
-          libtool \
-          pkg-config
-
-    - name: Build APK with Buildozer
+    - name: Build with Buildozer
       uses: ArtemSBulgakov/buildozer-action@v1
+      id: buildozer
       with:
-        command: android debug
+        command: build android_debug
+        release: false
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
