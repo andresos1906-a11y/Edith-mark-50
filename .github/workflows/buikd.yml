@@ -12,11 +12,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+
       - name: Install Deps
         run: |
           sudo apt update
-          sudo apt install -y unzip wget libffi-dev
+          sudo apt install -y unzip wget libffi-dev libssl-dev
           pip install buildozer cython==0.29.33
+
       - name: Install SDK + Aceptar Licencia 37
         run: |
           mkdir -p $HOME/android-sdk/cmdline-tools
@@ -31,12 +33,12 @@ jobs:
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
           $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "build-tools;37.0.0" "platforms;android-33" "platform-tools" "ndk;25.1.8937393"
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          # ESTE ES EL HACK PARA BUILDOZER - le creamos la licencia a mano
+          # HACK 1: Licencia para Buildozer
           mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
           echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
           echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
           echo "24333f8a63b6825ea9c5514f83c4501b4f66f04" >> $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-          echo "y" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+
       - name: Build APK
         run: |
           export JAVA_HOME=$JAVA_HOME_17_X64
@@ -44,8 +46,13 @@ jobs:
           export ANDROIDNDK=$HOME/android-sdk/ndk/25.1.8937393
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export ANDROID_HOME=$HOME/android-sdk
+          # HACK 2: Fix para tu error de las 2:28 - sdkmanager not found / Aidl not found
+          mkdir -p $HOME/.buildozer/android/platform
+          rm -rf $HOME/.buildozer/android/platform/android-sdk
+          ln -s $HOME/android-sdk $HOME/.buildozer/android/platform/android-sdk
           buildozer android debug
+
       - uses: actions/upload-artifact@v4
         with:
-          name: EDITH-VISION-FINAL-APK
+          name: EDITH-VISION-APK
           path: bin/*.apk
